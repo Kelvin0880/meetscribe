@@ -4,9 +4,8 @@ services:
     runtime: node
     plan: free
     region: oregon
-    rootDir: backend
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: npm install --include=dev && npm run build --workspace=backend
+    startCommand: npm start --workspace=backend
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
