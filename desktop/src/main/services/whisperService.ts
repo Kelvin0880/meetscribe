@@ -64,8 +64,24 @@ export async function transcribeWavFile(wavPath: string): Promise<string> {
     });
     child.on("error", (err) => reject(new Error(`No se pudo ejecutar whisper-cli: ${err.message}`)));
     child.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`whisper-cli terminó con código ${code}: ${stderr.slice(-500)}`));
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      // 0xC0000135 (STATUS_DLL_NOT_FOUND) en Windows: al binario le falta el
+      // Visual C++ Redistributable. whisper-cli no imprime nada en este caso
+      // (stderr queda vacío), así que sin este chequeo el error sería
+      // indescifrable para el usuario.
+      if (code === -1073741515) {
+        reject(
+          new Error(
+            "whisper-cli.exe no pudo arrancar: falta el Visual C++ Redistributable de Microsoft en este equipo. " +
+              "Instalalo desde https://aka.ms/vs/17/release/vc_redist.x64.exe y volvé a intentar.",
+          ),
+        );
+        return;
+      }
+      reject(new Error(`whisper-cli terminó con código ${code}: ${stderr.slice(-500)}`));
     });
   });
 

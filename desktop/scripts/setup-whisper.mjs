@@ -39,17 +39,24 @@ async function downloadModel() {
 }
 
 function findExecutable(dir) {
+  // El zip trae, en la raíz, un "whisper-cli.exe" que en realidad es solo un
+  // stub de aviso de deprecación (~27KB) que imprime un mensaje y sale — el
+  // binario real y funcional vive más adentro (carpeta Release/) y pesa
+  // varios cientos de KB. Buscamos TODOS los candidatos y nos quedamos con
+  // el más grande, no con el primero que aparezca.
   const targets = new Set(["whisper-cli.exe", "main.exe"]);
+  const candidates = [];
   const stack = [dir];
   while (stack.length > 0) {
     const current = stack.pop();
     for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
       const fullPath = path.join(current, entry.name);
       if (entry.isDirectory()) stack.push(fullPath);
-      else if (targets.has(entry.name.toLowerCase())) return fullPath;
+      else if (targets.has(entry.name.toLowerCase())) candidates.push(fullPath);
     }
   }
-  return null;
+  if (candidates.length === 0) return null;
+  return candidates.map((p) => ({ p, size: fs.statSync(p).size })).sort((a, b) => b.size - a.size)[0].p;
 }
 
 async function downloadBinary() {
@@ -65,7 +72,15 @@ async function downloadBinary() {
   }
   const release = await releaseRes.json();
 
-  const asset = release.assets.find((a) => /win.*x64.*\.zip$/i.test(a.name) || /x64.*win.*\.zip$/i.test(a.name));
+  // El release "estándar" CPU-only para Windows x64 se llama "whisper-bin-x64.zip"
+  // (sin CUDA/BLAS, no requiere DLLs ni drivers extra). Match exacto primero,
+  // y si el nombre cambia en un release futuro, un fallback más laxo que
+  // evita las variantes cublas/blas/arm/ubuntu.
+  const asset =
+    release.assets.find((a) => /^whisper-bin-x64\.zip$/i.test(a.name)) ??
+    release.assets.find(
+      (a) => /x64/i.test(a.name) && /\.zip$/i.test(a.name) && !/blas|cublas|arm|ubuntu/i.test(a.name),
+    );
   if (!asset) {
     throw new Error(
       "No se encontró un binario de Windows x64 en el último release de whisper.cpp. " +
@@ -103,7 +118,10 @@ async function main() {
     console.log("\nListo. Ya podés grabar reuniones.");
   } catch (err) {
     console.error(`\nError en el setup de Whisper: ${err.message}`);
-    process.exit(1);
+    // process.exitCode (en vez de process.exit) deja que Node cierre los
+    // handles de red pendientes solo, evitando un crash nativo de libuv al
+    // salir de golpe con una request de fetch todavía en curso.
+    process.exitCode = 1;
   }
 }
 
