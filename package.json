@@ -1,0 +1,19 @@
+{
+  "name": "meetscribe",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "backend",
+    "desktop"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:desktop": "npm run dev --workspace=desktop",
+    "migrate": "npm run migrate --workspace=backend"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "electron@33.4.11": true,
+    "esbuild@0.21.5": true
+  }
+}
