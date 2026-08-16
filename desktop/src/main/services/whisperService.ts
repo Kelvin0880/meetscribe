@@ -71,8 +71,11 @@ export async function transcribeWavFile(wavPath: string): Promise<string> {
       // 0xC0000135 (STATUS_DLL_NOT_FOUND) en Windows: al binario le falta el
       // Visual C++ Redistributable. whisper-cli no imprime nada en este caso
       // (stderr queda vacío), así que sin este chequeo el error sería
-      // indescifrable para el usuario.
-      if (code === -1073741515) {
+      // indescifrable para el usuario. Node a veces reporta este código con
+      // signo (-1073741515) y a veces sin signo (3221225781) — son el mismo
+      // valor de 32 bits, así que normalizamos antes de comparar.
+      const unsignedCode = typeof code === "number" ? code >>> 0 : null;
+      if (unsignedCode === 0xc0000135) {
         reject(
           new Error(
             "whisper-cli.exe no pudo arrancar: falta el Visual C++ Redistributable de Microsoft en este equipo. " +

@@ -18,6 +18,7 @@ El backend corre siempre en la nube (Render), así que la app funciona igual sin
 
 - [Node.js](https://nodejs.org/) 20 o superior
 - Windows 10/11
+- [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe) — lo necesita el motor de transcripción (Whisper). Muchos PCs ya lo tienen instalado (viene con juegos y otro software); si al grabar da un error de DLL faltante, instalar este link lo soluciona.
 
 ### Instalación
 
